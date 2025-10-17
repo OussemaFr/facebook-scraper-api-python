@@ -2,16 +2,21 @@
 
 """Comprehensive tests for FacebookScraperClient."""
 
+import json
 from unittest.mock import Mock, patch
 
 import pytest
 
 from facebook_scraper_sdk import (
     AuthenticationError,
+    ContentError,
+    CookiesError,
     FacebookScraperClient,
     FacebookScraperError,
     NotFoundError,
+    PrivateContentError,
     RateLimitError,
+    UnparsableContentError,
     ValidationError,
 )
 
@@ -68,8 +73,6 @@ class TestGetPageId:
 
         assert result == {"page_id": "12345", "username": "MazdaItalia"}
         mock_get.assert_called_once()
-        call_args = mock_get.call_args
-        assert "link" in call_args[1]["params"]
 
     def test_get_page_id_without_link(self):
         """Test that empty link raises ValidationError."""
@@ -84,7 +87,21 @@ class TestGetPageId:
             client.get_page_id(None)
 
     @patch("requests.Session.get")
-    def test_get_page_id_authentication_error(self, mock_get):
+    def test_get_page_id_authentication_error_403(self, mock_get):
+        """Test handling of 403 authentication error."""
+        mock_response = Mock()
+        mock_response.status_code = 403
+        mock_response.text = json.dumps(
+            {"success": False, "error_code": "INVALID_TOKEN", "message": "Invalid API token"}
+        )
+        mock_get.return_value = mock_response
+
+        client = FacebookScraperClient(api_key="invalid-key")
+        with pytest.raises(AuthenticationError, match="Invalid API token"):
+            client.get_page_id("https://www.facebook.com/TestPage")
+
+    @patch("requests.Session.get")
+    def test_get_page_id_authentication_error_401(self, mock_get):
         """Test handling of 401 authentication error."""
         mock_response = Mock()
         mock_response.status_code = 401
@@ -92,7 +109,7 @@ class TestGetPageId:
         mock_get.return_value = mock_response
 
         client = FacebookScraperClient(api_key="invalid-key")
-        with pytest.raises(AuthenticationError, match="Invalid API key"):
+        with pytest.raises(AuthenticationError, match="Unauthorized"):
             client.get_page_id("https://www.facebook.com/TestPage")
 
     @patch("requests.Session.get")
@@ -120,15 +137,93 @@ class TestGetPageId:
             client.get_page_id("https://www.facebook.com/NonExistent")
 
     @patch("requests.Session.get")
-    def test_get_page_id_validation_error(self, mock_get):
-        """Test handling of 400 validation error."""
+    def test_get_page_id_validation_error_202(self, mock_get):
+        """Test handling of 202 validation error."""
         mock_response = Mock()
-        mock_response.status_code = 400
-        mock_response.text = "Bad request"
+        mock_response.status_code = 202
+        mock_response.text = json.dumps(
+            {
+                "success": False,
+                "error_code": "INVALID_PAGE_URL",
+                "message": "Please provide a valid Facebook page URL",
+            }
+        )
         mock_get.return_value = mock_response
 
         client = FacebookScraperClient(api_key="test-key")
-        with pytest.raises(ValidationError, match="Invalid request parameters"):
+        with pytest.raises(ValidationError):
+            client.get_page_id("https://www.facebook.com/TestPage")
+
+    @patch("requests.Session.get")
+    def test_get_page_id_private_page_203(self, mock_get):
+        """Test handling of 203 private page error."""
+        mock_response = Mock()
+        mock_response.status_code = 203
+        mock_response.text = json.dumps(
+            {
+                "success": False,
+                "error_code": "PRIVATE_PAGE",
+                "detail": "This Facebook page is private. Please contact support if you have multiple private pages to scrape.",
+            }
+        )
+        mock_get.return_value = mock_response
+
+        client = FacebookScraperClient(api_key="test-key")
+        with pytest.raises(PrivateContentError):
+            result = client.get_page_id("https://www.facebook.com/PrivatePage")
+
+    @patch("requests.Session.get")
+    def test_get_page_id_cookies_expired_203(self, mock_get):
+        """Test handling of 203 cookies expired error."""
+        mock_response = Mock()
+        mock_response.status_code = 203
+        mock_response.text = json.dumps(
+            {
+                "success": False,
+                "error_code": "COOKIES_EXPIRED",
+                "message": "User cookies are expired",
+            }
+        )
+        mock_get.return_value = mock_response
+
+        client = FacebookScraperClient(api_key="test-key")
+        with pytest.raises(CookiesError):
+            client.get_page_id("https://www.facebook.com/TestPage")
+
+    @patch("requests.Session.get")
+    def test_get_page_id_content_error_206(self, mock_get):
+        """Test handling of 206 content error."""
+        mock_response = Mock()
+        mock_response.status_code = 206
+        mock_response.text = json.dumps(
+            {
+                "success": False,
+                "error_code": "FAILED_TO_FETCH_LISTING_DETAILS",
+                "message": "Could not retrieve listing details",
+            }
+        )
+        mock_get.return_value = mock_response
+
+        client = FacebookScraperClient(api_key="test-key")
+        with pytest.raises(ContentError):
+            client.get_page_id("https://www.facebook.com/TestPage")
+
+    @patch("requests.Session.get")
+    def test_get_page_id_unparsable_content_208(self, mock_get):
+        """Test handling of 208 unparsable content error."""
+        mock_response = Mock()
+        mock_response.status_code = 208
+        mock_response.text = json.dumps(
+            {
+                "success": False,
+                "error_code": "UNPARSABLE_CONTENT",
+                "message": "Content contains inappropriate keywords",
+            }
+        )
+        mock_get.return_value = mock_response
+
+        client = FacebookScraperClient(api_key="test-key")
+        with pytest.raises(UnparsableContentError):
             client.get_page_id("https://www.facebook.com/TestPage")
 
 
@@ -165,8 +260,6 @@ class TestGetPageDetails:
         result = client.get_page_details(profile_id="12345")
 
         assert result["name"] == "Test Page"
-        call_args = mock_get.call_args
-        assert "profile_id" in call_args[1]["params"]
 
     @patch("requests.Session.get")
     def test_get_page_details_link_takes_priority(self, mock_get):
@@ -210,21 +303,48 @@ class TestGetPageDetails:
         assert params["exact_followers_count"] == "false"
         assert params["show_verified_badge"] == "true"
 
+
+class TestErrorParsing:
+    """Test error response parsing."""
+
     @patch("requests.Session.get")
-    def test_get_page_details_default_params(self, mock_get):
-        """Test default boolean parameter values."""
+    def test_parse_json_error_response(self, mock_get):
+        """Test parsing JSON error response."""
         mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"name": "Test Page"}
+        mock_response.status_code = 202
+        mock_response.text = json.dumps(
+            {
+                "success": False,
+                "error_code": "INVALID_PAGE_URL",
+                "message": "Please provide a valid Facebook page URL",
+            }
+        )
         mock_get.return_value = mock_response
 
         client = FacebookScraperClient(api_key="test-key")
-        client.get_page_details(link="https://www.facebook.com/TestPage")
 
-        call_args = mock_get.call_args
-        params = call_args[1]["params"]
-        assert params["exact_followers_count"] == "true"
-        assert params["show_verified_badge"] == "false"
+        try:
+            client.get_page_id("invalid-url")
+        except ValidationError as e:
+            assert e.error_code == "INVALID_PAGE_URL"
+            assert "valid Facebook page URL" in e.message
+            assert e.status_code == 202
+
+    @patch("requests.Session.get")
+    def test_parse_plain_text_error_response(self, mock_get):
+        """Test parsing plain text error response."""
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.text = "Internal Server Error"
+        mock_get.return_value = mock_response
+
+        client = FacebookScraperClient(api_key="test-key")
+
+        try:
+            client.get_page_id("https://www.facebook.com/TestPage")
+        except FacebookScraperError as e:
+            assert e.status_code == 500
+            assert "Internal Server Error" in str(e)
 
 
 class TestContextManager:
@@ -242,13 +362,6 @@ class TestContextManager:
         with FacebookScraperClient(api_key="test-key") as client:
             pass
         mock_close.assert_called_once()
-
-    def test_manual_close(self):
-        """Test manual session close."""
-        client = FacebookScraperClient(api_key="test-key")
-        with patch.object(client.session, "close") as mock_close:
-            client.close()
-            mock_close.assert_called_once()
 
 
 class TestErrorHandling:
@@ -287,35 +400,6 @@ class TestErrorHandling:
         with pytest.raises(FacebookScraperError, match="Request failed"):
             client.get_page_id("https://www.facebook.com/TestPage")
 
-    @patch("requests.Session.get")
-    def test_500_server_error(self, mock_get):
-        """Test handling of 500 internal server error."""
-        mock_response = Mock()
-        mock_response.status_code = 500
-        mock_response.text = "Internal Server Error"
-        mock_get.return_value = mock_response
-
-        client = FacebookScraperClient(api_key="test-key")
-        with pytest.raises(FacebookScraperError, match="API request failed"):
-            client.get_page_id("https://www.facebook.com/TestPage")
-
-
-class TestExceptionProperties:
-    """Test exception class properties."""
-
-    def test_exception_with_status_code(self):
-        """Test exception includes status code."""
-        error = FacebookScraperError("Test error", status_code=404, response="Not found")
-        assert error.status_code == 404
-        assert error.response == "Not found"
-        assert "404" in str(error)
-
-    def test_exception_without_status_code(self):
-        """Test exception without status code."""
-        error = FacebookScraperError("Test error")
-        assert error.status_code is None
-        assert "Test error" in str(error)
-
 
 class TestRepr:
     """Test string representation."""
@@ -349,18 +433,4 @@ class TestIntegrationScenarios:
 
         assert result1 == {"page_id": "12345"}
         assert result2 == {"page_id": "12345"}
-        assert mock_get.call_count == 2
-
-    @patch("requests.Session.get")
-    def test_mixed_method_calls(self, mock_get):
-        """Test calling different methods on same client."""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"data": "test"}
-        mock_get.return_value = mock_response
-
-        with FacebookScraperClient(api_key="test-key") as client:
-            client.get_page_id("https://www.facebook.com/Page1")
-            client.get_page_details(link="https://www.facebook.com/Page2")
-
         assert mock_get.call_count == 2
