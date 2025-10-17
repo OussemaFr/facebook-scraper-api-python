@@ -21,7 +21,7 @@ from .exceptions import (
 class FacebookScraperClient:
     """
     Client for interacting with Facebook Scraper API.
-    
+
     Example:
         >>> from facebook_scraper_sdk import FacebookScraperClient
         >>> client = FacebookScraperClient(api_key="your-rapidapi-key")
@@ -47,55 +47,72 @@ class FacebookScraperClient:
         self.api_key = api_key
         self.timeout = timeout
         self.session = requests.Session()
-        self.session.headers.update({
-            "x-rapidapi-host": "facebook-scraper-api4.p.rapidapi.com",
-            "x-rapidapi-key": self.api_key,
-        })
+        self.session.headers.update(
+            {
+                "x-rapidapi-host": "facebook-scraper-api4.p.rapidapi.com",
+                "x-rapidapi-key": self.api_key,
+            }
+        )
 
     def _parse_error_response(self, response_text: str, status_code: int) -> tuple:
         """
         Parse error response to extract error code and message.
-        
+
         Returns:
             Tuple of (error_code, error_message)
         """
         try:
             import json
+
             error_data = json.loads(response_text)
-            error_code = error_data.get('error_code', '')
-            error_message = error_data.get('message', response_text)
+            error_code = error_data.get("error_code", "")
+            error_message = error_data.get("message", response_text)
             return error_code, error_message
         except:
-            return '', response_text
+            return "", response_text
 
-    def _make_request(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _make_request(
+        self, endpoint: str, params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """Make HTTP request to the API."""
         url = f"{self.BASE_URL}{endpoint}"
 
         try:
             response = self.session.get(url, params=params, timeout=self.timeout)
-            
+
             # Success
             if response.status_code == 200:
                 return response.json()
-            
+
             # Parse error response
-            error_code, error_message = self._parse_error_response(response.text, response.status_code)
-            
+            error_code, error_message = self._parse_error_response(
+                response.text, response.status_code
+            )
+
             # HTTP 202 - Validation Errors
             if response.status_code == 202:
                 validation_errors = [
-                    'INVALID_ENDPOINT_FOR_GROUP', 'INVALID_MARKETPLACE_LINK',
-                    'INVALID_MARKETPLACE_LINK_FORMAT', 'INVALID_END_CURSOR',
-                    'INVALID_ACTIVE_STATUS', 'INVALID_TIMEZONE',
-                    'MISSING_REQUIRED_FIELDS', 'INVALID_PAGE_URL',
-                    'INVALID_GROUP_URL', 'INVALID_POST_URL',
-                    'INVALID_REELS_URL', 'INVALID_VIDEO_URL',
-                    'INVALID_SORT_BY', 'INVALID_FACEBOOK_ID',
-                    'INVALID_KEYWORD_ID', 'INVALID_DATE_FORMAT',
-                    'FUTURE_DATE_NOT_ALLOWED', 'INVALID_INPUT_TYPE',
-                    'INVALID_JSON_COOKIES', 'INVALID_SEARCH_CONDITION',
-                    'INVALID_AD_ARCHIVE_ID'
+                    "INVALID_ENDPOINT_FOR_GROUP",
+                    "INVALID_MARKETPLACE_LINK",
+                    "INVALID_MARKETPLACE_LINK_FORMAT",
+                    "INVALID_END_CURSOR",
+                    "INVALID_ACTIVE_STATUS",
+                    "INVALID_TIMEZONE",
+                    "MISSING_REQUIRED_FIELDS",
+                    "INVALID_PAGE_URL",
+                    "INVALID_GROUP_URL",
+                    "INVALID_POST_URL",
+                    "INVALID_REELS_URL",
+                    "INVALID_VIDEO_URL",
+                    "INVALID_SORT_BY",
+                    "INVALID_FACEBOOK_ID",
+                    "INVALID_KEYWORD_ID",
+                    "INVALID_DATE_FORMAT",
+                    "FUTURE_DATE_NOT_ALLOWED",
+                    "INVALID_INPUT_TYPE",
+                    "INVALID_JSON_COOKIES",
+                    "INVALID_SEARCH_CONDITION",
+                    "INVALID_AD_ARCHIVE_ID",
                 ]
                 raise ValidationError(
                     error_message or "Invalid request parameters",
@@ -103,12 +120,18 @@ class FacebookScraperClient:
                     error_code=error_code,
                     response=response.text,
                 )
-            
+
             # HTTP 203 - Private Content / Cookies Errors
             elif response.status_code == 203:
-                cookie_errors = ['COOKIES_EXPIRED', 'MISSING_COOKIES', 'EXPIRED_COOKIES']
-                private_errors = ['PRIVATE_PAGE', 'PRIVATE_GROUP', 'PRIVATE_CONTENT', 'PROFILE_NOT_FOUND', 'GROUP_ID_NOT_FOUND']
-                
+                cookie_errors = ["COOKIES_EXPIRED", "MISSING_COOKIES", "EXPIRED_COOKIES"]
+                private_errors = [
+                    "PRIVATE_PAGE",
+                    "PRIVATE_GROUP",
+                    "PRIVATE_CONTENT",
+                    "PROFILE_NOT_FOUND",
+                    "GROUP_ID_NOT_FOUND",
+                ]
+
                 if error_code in cookie_errors:
                     raise CookiesError(
                         error_message or "Cookie authentication failed",
@@ -130,7 +153,7 @@ class FacebookScraperClient:
                         error_code=error_code,
                         response=response.text,
                     )
-            
+
             # HTTP 206 - Content Fetch Errors
             elif response.status_code == 206:
                 raise ContentError(
@@ -139,7 +162,7 @@ class FacebookScraperClient:
                     error_code=error_code,
                     response=response.text,
                 )
-            
+
             # HTTP 208 - Unparsable Content
             elif response.status_code == 208:
                 raise UnparsableContentError(
@@ -148,7 +171,7 @@ class FacebookScraperClient:
                     error_code=error_code,
                     response=response.text,
                 )
-            
+
             # HTTP 403 - Authentication Error (Invalid Token)
             elif response.status_code == 403:
                 raise AuthenticationError(
@@ -157,7 +180,7 @@ class FacebookScraperClient:
                     error_code=error_code,
                     response=response.text,
                 )
-            
+
             # HTTP 401 - Unauthorized
             elif response.status_code == 401:
                 raise AuthenticationError(
@@ -166,7 +189,7 @@ class FacebookScraperClient:
                     error_code=error_code,
                     response=response.text,
                 )
-            
+
             # HTTP 429 - Rate Limit
             elif response.status_code == 429:
                 raise RateLimitError(
@@ -175,7 +198,7 @@ class FacebookScraperClient:
                     error_code=error_code,
                     response=response.text,
                 )
-            
+
             # HTTP 404 - Not Found
             elif response.status_code == 404:
                 raise NotFoundError(
@@ -184,7 +207,7 @@ class FacebookScraperClient:
                     error_code=error_code,
                     response=response.text,
                 )
-            
+
             # Generic error
             else:
                 raise FacebookScraperError(
@@ -193,7 +216,7 @@ class FacebookScraperClient:
                     error_code=error_code,
                     response=response.text,
                 )
-                
+
         except requests.exceptions.Timeout:
             raise FacebookScraperError(f"Request timed out after {self.timeout} seconds")
         except requests.exceptions.RequestException as e:
@@ -256,7 +279,7 @@ class FacebookScraperClient:
             ...     link="https://www.facebook.com/EngenSA",
             ...     exact_followers_count=True
             ... )
-        
+
         Note:
             If both link and profile_id are provided, link takes priority.
         """
