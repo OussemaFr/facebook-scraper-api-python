@@ -8,15 +8,15 @@ Official Python SDK for Facebook Scraper API via RapidAPI.
 
 from .client import FacebookScraperClient
 from .exceptions import (
-    FacebookScraperError,
     AuthenticationError,
-    RateLimitError,
-    NotFoundError,
-    ValidationError,
-    PrivateContentError,
-    CookiesError,
     ContentError,
+    CookiesError,
+    FacebookScraperError,
+    NotFoundError,
+    PrivateContentError,
+    RateLimitError,
     UnparsableContentError,
+    ValidationError,
 )
 
 __version__ = "1.0.0"

@@ -2,15 +2,17 @@
 
 """Comprehensive tests for FacebookScraperClient."""
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
+
 from facebook_scraper_sdk import (
-    FacebookScraperClient,
     AuthenticationError,
-    RateLimitError,
-    NotFoundError,
-    ValidationError,
+    FacebookScraperClient,
     FacebookScraperError,
+    NotFoundError,
+    RateLimitError,
+    ValidationError,
 )
 
 
@@ -175,10 +177,7 @@ class TestGetPageDetails:
         mock_get.return_value = mock_response
 
         client = FacebookScraperClient(api_key="test-key")
-        client.get_page_details(
-            link="https://www.facebook.com/TestPage", 
-            profile_id="12345"
-        )
+        client.get_page_details(link="https://www.facebook.com/TestPage", profile_id="12345")
 
         call_args = mock_get.call_args
         params = call_args[1]["params"]
@@ -247,7 +246,7 @@ class TestContextManager:
     def test_manual_close(self):
         """Test manual session close."""
         client = FacebookScraperClient(api_key="test-key")
-        with patch.object(client.session, 'close') as mock_close:
+        with patch.object(client.session, "close") as mock_close:
             client.close()
             mock_close.assert_called_once()
 
@@ -259,6 +258,7 @@ class TestErrorHandling:
     def test_timeout_error(self, mock_get):
         """Test handling of request timeout."""
         import requests
+
         mock_get.side_effect = requests.exceptions.Timeout()
 
         client = FacebookScraperClient(api_key="test-key", timeout=5)
@@ -269,6 +269,7 @@ class TestErrorHandling:
     def test_connection_error(self, mock_get):
         """Test handling of connection error."""
         import requests
+
         mock_get.side_effect = requests.exceptions.ConnectionError("Connection failed")
 
         client = FacebookScraperClient(api_key="test-key")
@@ -279,6 +280,7 @@ class TestErrorHandling:
     def test_generic_request_error(self, mock_get):
         """Test handling of generic request exception."""
         import requests
+
         mock_get.side_effect = requests.exceptions.RequestException("Unknown error")
 
         client = FacebookScraperClient(api_key="test-key")
@@ -322,7 +324,7 @@ class TestRepr:
         """Test that __repr__ masks the API key."""
         client = FacebookScraperClient(api_key="super-secret-key", timeout=45)
         repr_str = repr(client)
-        
+
         assert "FacebookScraperClient" in repr_str
         assert "super-secret-key" not in repr_str
         assert "***" in repr_str
@@ -341,10 +343,10 @@ class TestIntegrationScenarios:
         mock_get.return_value = mock_response
 
         client = FacebookScraperClient(api_key="test-key")
-        
+
         result1 = client.get_page_id("https://www.facebook.com/Page1")
         result2 = client.get_page_id("https://www.facebook.com/Page2")
-        
+
         assert result1 == {"page_id": "12345"}
         assert result2 == {"page_id": "12345"}
         assert mock_get.call_count == 2
@@ -360,5 +362,5 @@ class TestIntegrationScenarios:
         with FacebookScraperClient(api_key="test-key") as client:
             client.get_page_id("https://www.facebook.com/Page1")
             client.get_page_details(link="https://www.facebook.com/Page2")
-        
+
         assert mock_get.call_count == 2

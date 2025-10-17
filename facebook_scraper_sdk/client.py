@@ -2,19 +2,20 @@
 
 """Main client for Facebook Scraper API."""
 
+from typing import Any, Dict, Optional
+
 import requests
-from typing import Optional, Dict, Any
 
 from .exceptions import (
-    FacebookScraperError,
     AuthenticationError,
-    RateLimitError,
-    NotFoundError,
-    ValidationError,
-    PrivateContentError,
-    CookiesError,
     ContentError,
+    CookiesError,
+    FacebookScraperError,
+    NotFoundError,
+    PrivateContentError,
+    RateLimitError,
     UnparsableContentError,
+    ValidationError,
 )
 
 
