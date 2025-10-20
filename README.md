@@ -319,7 +319,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 💬 Support
 
-- 📧 Email: your.email@example.com
+- 📧 Email: oussemaa.frikha@gmail.com
 - 🐛 Issues: [GitHub Issues](https://github.com/yourusername/facebook-scraper-python/issues)
 - 🔑 Get API Key: https://rapidapi.com/oussemaf/api/facebook-scraper-api4
 

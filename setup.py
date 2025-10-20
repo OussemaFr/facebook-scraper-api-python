@@ -5,27 +5,34 @@
 from setuptools import setup, find_packages
 from pathlib import Path
 
+# Read the README file
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 
+# Read version from __version__.py
+version = {}
+with open("facebook_scraper_sdk/__version__.py") as f:
+    exec(f.read(), version)
+
 setup(
     name="facebook-scraper-sdk",
-    version="1.0.0",
-    author="Your Name",
-    author_email="your.email@example.com",
-    description="Official Python SDK for Facebook Scraper API via RapidAPI",
+    version=version['__version__'],
+    author=version['__author__'],
+    author_email=version['__author_email__'],
+    description=version['__description__'],
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/facebook-scraper-python",
+    url=version['__url__'],
     project_urls={
-        "Bug Tracker": "https://github.com/yourusername/facebook-scraper-python/issues",
-        "Documentation": "https://github.com/yourusername/facebook-scraper-python#readme",
-        "Source Code": "https://github.com/yourusername/facebook-scraper-python",
-        "Changelog": "https://github.com/yourusername/facebook-scraper-python/blob/main/CHANGELOG.md",
+        "Bug Tracker": "https://github.com/OussemaFr/facebook-scraper-api-python/issues",
+        "Documentation": "https://github.com/OussemaFr/facebook-scraper-api-python#readme",
+        "Source Code": "https://github.com/OussemaFr/facebook-scraper-api-python",
+        "Changelog": "https://github.com/OussemaFr/facebook-scraper-api-python/blob/main/CHANGELOG.md",
+        "RapidAPI": "https://rapidapi.com/oussemaf/api/facebook-scraper-api4",
     },
     packages=find_packages(),
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
@@ -38,6 +45,7 @@ setup(
         "Programming Language :: Python :: 3.12",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Internet :: WWW/HTTP",
+        "Topic :: Software Development :: Libraries",
     ],
     python_requires=">=3.7",
     install_requires=[
@@ -65,5 +73,9 @@ setup(
         "data-extraction",
         "rapidapi",
         "facebook-api",
+        "facebook-scraper",
+        "web-scraping",
     ],
+    include_package_data=True,
+    zip_safe=False,
 )

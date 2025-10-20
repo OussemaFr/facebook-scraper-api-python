@@ -6,6 +6,7 @@ Facebook Scraper API SDK
 Official Python SDK for Facebook Scraper API via RapidAPI.
 """
 
+from .__version__ import __author__, __author_email__, __license__, __version__
 from .client import FacebookScraperClient
 from .exceptions import (
     AuthenticationError,
@@ -18,14 +19,17 @@ from .exceptions import (
     UnparsableContentError,
     ValidationError,
 )
-
-__version__ = "1.0.0"
-__author__ = "Your Name"
-__email__ = "your.email@example.com"
-__license__ = "MIT"
+from .retry import RateLimiter, retry_with_backoff
 
 __all__ = [
+    # Version info
+    "__version__",
+    "__author__",
+    "__author_email__",
+    "__license__",
+    # Client
     "FacebookScraperClient",
+    # Exceptions
     "FacebookScraperError",
     "AuthenticationError",
     "RateLimitError",
@@ -35,4 +39,7 @@ __all__ = [
     "CookiesError",
     "ContentError",
     "UnparsableContentError",
+    # Utilities
+    "retry_with_backoff",
+    "RateLimiter",
 ]
